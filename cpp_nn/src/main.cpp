@@ -18,23 +18,18 @@ auto sum_all(Args... args)  requires(... and std::is_floating_point_v<Args>)
     return (... + args); 
 }
 
-using dtype = double;
+using dtype = float;
 
 int main(int argc, char const *argv[])
 {
-    tensor<float,3,3> t;
+    tensor<dtype,1024,1024> t;
 
-    //t.shape();
+    t.shape();
 
     t.range_fill(1);
+
+    auto res = t.matmul(t);
     
-    t.print();
-    std::cout <<"====================\n";
-
-    t.matmul(t).print();
-
-
-    //t.transpose();
-    //std::cout <<t.dot(t)<<std::endl;
+    std::cout <<"Sum: "<<std::accumulate(res.begin(),res.end(),0.0f)<<std::endl;
     
 }

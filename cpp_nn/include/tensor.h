@@ -88,17 +88,18 @@ public:
         static_assert(Cols == Rows2, "mismatch matrix dimensions");
         tensor<value_type,Rows,Cols2> result;
 
-        const auto tr_tensor = other.transpose();
+        //const auto tr_tensor = other.transpose();
+        const auto& tr_tensor = other;
         for(size_type i = 0; i < Rows; i++){
             for(size_type j =0; j < Cols2; j++){
 
                 const auto start_1 = begin() + i*Cols;
                 const auto end_1 = begin() + (i+1)*Cols;
-                const auto start_2 = tr_tensor.begin() + (j*Cols2) + i;
+
+                const auto start_2 = tr_tensor.begin() + (j*Cols2);
+                
                 result[j + Cols2*i] = std::transform_reduce(std::execution::par_unseq, start_1,end_1,start_2,static_cast<value_type>(0));       
-                //std::cout <<*start_2<<',';         
             }
-            //std::cout << std::endl;
         }
         return result;
     }
