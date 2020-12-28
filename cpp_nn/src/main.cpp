@@ -3,6 +3,8 @@
 #include<thread>
 #include<type_traits>
 #include<tensor.h>
+#include <sys/resource.h>
+#include "model.h"
 // template<typename T>
 // concept floating_point  = std::is_floating_point_v<T>;
 
@@ -20,16 +22,16 @@ auto sum_all(Args... args)  requires(... and std::is_floating_point_v<Args>)
 
 using dtype = float;
 
+
+
+
 int main(int argc, char const *argv[])
 {
-    tensor<dtype,1024,1024> t;
 
-    t.shape();
+    tensor<dtype,3,3> t;
 
     t.range_fill(1);
-
-    auto res = t.matmul(t);
-    
-    std::cout <<"Sum: "<<std::accumulate(res.begin(),res.end(),0.0f)<<std::endl;
+    std::cout <<"Result: " << std::endl;
+    t.matmul(t).print();
     
 }

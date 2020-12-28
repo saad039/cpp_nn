@@ -63,7 +63,7 @@ public:
         std::iota(begin(),end(),start);
     }
 
-//Apply a transformation to each element
+//Apply a transformation to each element in the tensor.
     void transform(unary_op trn){ std::transform(std::execution::par,begin(),end(),begin(),trn);}
 
     void tanh(){transform(std::tanh);}
@@ -87,17 +87,13 @@ public:
     {
         static_assert(Cols == Rows2, "mismatch matrix dimensions");
         tensor<value_type,Rows,Cols2> result;
-
-        //const auto tr_tensor = other.transpose();
-        const auto& tr_tensor = other;
+        const auto tr_tensor = other.transpose();
+        //After transpose, tr_tensor has 'Cols2' rows and 'Rows2' columns
         for(size_type i = 0; i < Rows; i++){
-            for(size_type j =0; j < Cols2; j++){
-
                 const auto start_1 = begin() + i*Cols;
                 const auto end_1 = begin() + (i+1)*Cols;
-
-                const auto start_2 = tr_tensor.begin() + (j*Cols2);
-                
+            for(size_type j =0; j < Cols2; j++){
+                const auto start_2 = tr_tensor.begin() + (j*Rows2);                
                 result[j + Cols2*i] = std::transform_reduce(std::execution::par_unseq, start_1,end_1,start_2,static_cast<value_type>(0));       
             }
         }
@@ -129,17 +125,8 @@ public:
         }
     }
 
+    const auto& get_shape() const{return this->dims;}
 };
-
-
-// template<typename value_type, std::size_t Rows, std::size_t Cols=1>
-// template<typename tensor<value_type,std::size_t Rows2, std::size_t Cols2> matrix>
-
-// [[nodiscard]] tensor<value_type,Rows,Cols2> tensor<value_type, std::size_t Rows, std::size_t Cols>::matmul(const matrix& other) const
-// {
-//      assert(dims.second == other.dims.first && "mismatch matrix dimensions");
-//      tensor<value_type,Rows,Cols2> result;
-// } 
 
 
 #endif
