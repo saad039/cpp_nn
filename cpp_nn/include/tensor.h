@@ -128,5 +128,9 @@ public:
     const auto& get_shape() const{return this->dims;}
 };
 
+using dtype = float;
+
+template<std::size_t rows, std::size_t cols>
+using tensor_t = tensor<dtype,rows,cols>;
 
 #endif
