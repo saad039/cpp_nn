@@ -20,7 +20,6 @@ auto sum_all(Args... args)  requires(... and std::is_floating_point_v<Args>)
     return (... + args); 
 }
 
-using dtype = float;
 
 
 
@@ -28,10 +27,14 @@ using dtype = float;
 int main(int argc, char const *argv[])
 {
 
-    tensor<dtype,3,3> t;
+    tensor_t<3,3> t;
 
-    t.range_fill(1);
-    std::cout <<"Result: " << std::endl;
-    t.matmul(t).print();
+    // t.range_fill(1);
+    // std::cout <<"Result: " << std::endl;
+    // t.matmul(t).print();
+
+    model<3,3,3,3,3> m{std::move(t)};
+
+    m.summary();
     
 }
