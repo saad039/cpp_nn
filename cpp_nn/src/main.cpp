@@ -27,14 +27,17 @@ auto sum_all(Args... args)  requires(... and std::is_floating_point_v<Args>)
 int main(int argc, char const *argv[])
 {
 
-    tensor_t<3,3> t;
+    tensor_t<1024,1024> t;
 
-    // t.range_fill(1);
-    // std::cout <<"Result: " << std::endl;
-    // t.matmul(t).print();
+    t.range_fill(1);
+    
+    const auto res = t.matmul(t);
 
-    model<3,3,3,3,3> m{std::move(t)};
+    std::cout <<"Result: "<<std::reduce(std::execution::par_unseq,res.begin(),res.end(),0.0f) << std::endl;
 
-    m.summary();
+
+    //model<3,3,3,3,3> m{std::move(t)};
+
+    //m.summary();
     
 }

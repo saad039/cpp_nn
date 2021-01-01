@@ -53,25 +53,25 @@ public:
     void shape() const noexcept{std::cout<<'('<<dims.first<<','<<dims.second<<")\n";}
 
 //Fill the tensor with constants. 
-    constexpr void constant_fill(const value_type& val){std::fill(begin(),end(),val);}
+    constexpr void constant_fill(const value_type& val)noexcept {std::fill(begin(),end(),val);}
 
 //Fill the tensor by invoking a function for each element
-    void generator_fill(generator gen) {std::generate(std::execution::par,begin(),end(),gen);}
+    constexpr void generator_fill(generator gen) noexcept {std::generate(std::execution::par,begin(),end(),gen);}
 
-    void range_fill(const_reference start)
+    constexpr void range_fill(const_reference start) noexcept
     {
         std::iota(begin(),end(),start);
     }
 
 //Apply a transformation to each element in the tensor.
-    void transform(unary_op trn){ std::transform(std::execution::par,begin(),end(),begin(),trn);}
+    constexpr void transform(unary_op trn) noexcept{ std::transform(std::execution::par,begin(),end(),begin(),trn);}
 
-    void tanh(){transform(std::tanh);}
+    constexpr void tanh() noexcept{transform(std::tanh);}
 
-    void ones(){generator_fill([](){return static_cast<value_type>(1);});}
+    constexpr void ones() noexcept {generator_fill([](){return static_cast<value_type>(1);});}
 
     template<std::size_t Rows2, std::size_t Cols2>
-    [[nodiscard]] value_type dot(const tensor<value_type,Rows2,Cols2>& other) const noexcept
+    [[nodiscard]] constexpr value_type dot(const tensor<value_type,Rows2,Cols2>& other) const noexcept
     {
         
         static_assert(Rows == Rows2 == 1 or Cols == Cols2 == 1,"tensors are not 1D"); //must be 1d arrays
@@ -83,7 +83,7 @@ public:
 
     
     template<std::size_t Rows2, std::size_t Cols2>
-    [[nodiscard]] auto matmul(const tensor<value_type,Rows2,Cols2>& other) const
+    [[nodiscard]] constexpr auto matmul(const tensor<value_type,Rows2,Cols2>& other) const noexcept
     {
         static_assert(Cols == Rows2, "mismatch matrix dimensions");
         tensor<value_type,Rows,Cols2> result;
@@ -101,7 +101,7 @@ public:
     }
 
 
-    [[nodiscard]] tensor<value_type,Cols,Rows> transpose() const
+    [[nodiscard]] constexpr tensor<value_type,Cols,Rows> transpose() const noexcept
     {
         tensor<value_type,Cols,Rows> result;
 
@@ -125,7 +125,7 @@ public:
         }
     }
 
-    const auto& get_shape() const{return this->dims;}
+    constexpr auto& get_shape() const noexcept{return this->dims;}
 };
 
 using dtype = float;

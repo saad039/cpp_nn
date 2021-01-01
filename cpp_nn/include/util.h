@@ -10,7 +10,7 @@ namespace util
             std::cout <<std::endl;
         };
     
-    auto printshape = [](const str, const std::pair<std::size_t,std::size_t>& shape){
+    auto printshape = [](const char* str, const std::pair<std::size_t,std::size_t>& shape){
         println(str,"(",shape.first,",",shape.second,")");
     };
 }

@@ -1,1 +1,0 @@
-{"architecture":"64bit","author":"Muhammad Saad","cppdialect":"C++17","projects":{"cpp_nn":{"cppdialect":"C++17","kind":"consoleapp","links":["pthread"],"projectname":"cpp_nn"}},"toolset":"gcc","workspace":"cpp_nn"}
