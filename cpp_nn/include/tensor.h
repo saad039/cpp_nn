@@ -2,19 +2,32 @@
 #define TENSOR_H
 
 #include <array>
-#include<algorithm>
-#include<execution>
-#include<cmath>
-#include<tuple>
-#include<cassert>
-#include<numeric>
+#include <algorithm>
+#include <execution>
+#include <cmath>
+#include <tuple>
+#include <cassert>
+#include <numeric>
+#include "rng.h"
+/*
+====================================================================
+A wrapper arround std::array container which is populated with 
+random numbers sampled from the uniform distribution at compile time.
+Other generator functions can be used to override this behaviour at
+compile time but afte construction.
 
-template <typename T, std::size_t Rows, std::size_t Cols=1>
+Random number generated ⊆  (MN,...,MX)
+====================================================================
+*/
+
+//template<typename _Ty>
+//concept floating_point  = std::is_floating_point_v<_Ty>;
+template <floating_point T, std::size_t Rows, std::size_t Cols=1, std::int32_t MN=0, std::int32_t MX=1>
+
 class tensor {
 
-
 typedef T                                                       value_type;
-typedef decltype(Rows)                                          size_type  ;
+typedef decltype(Rows)                                          size_type;
 typedef value_type&                                             reference;
 typedef const value_type&                                       const_reference;
 typedef value_type*                                             pointer;
@@ -27,9 +40,15 @@ typedef std::array<value_type,Rows*Cols>                        container_type;
 typedef value_type (*generator)();
 typedef value_type (*unary_op)(const value_type&);
 
+    
 private:
-    container_type container;
-    shape_type dims = std::make_pair(Rows,Cols);
+    const value_type MIN_VAL = static_cast<value_type>(MN);
+    const value_type MAX_VAL = static_cast<value_type>(MX);
+    const shape_type dims = std::make_pair(Rows,Cols);
+
+    RNG<value_type,Rows*Cols> uniform_rn_gen;
+    container_type container{uniform_rn_gen(MIN_VAL,MAX_VAL)};
+
     constexpr bool has_equal_shape(const tensor& other) const noexcept {return dims.first == other.dims.first and dims.second == other.dims.second;} 
 
 public:
