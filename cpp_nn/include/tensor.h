@@ -49,7 +49,7 @@ private:
     RNG<value_type,Rows*Cols> uniform_rn_gen;
     container_type container{uniform_rn_gen(MIN_VAL,MAX_VAL)};
 
-    constexpr bool has_equal_shape(const tensor& other) const noexcept {return dims.first == other.dims.first and dims.second == other.dims.second;} 
+    constexpr static bool has_equal_shape(const size_type& Rows2,const size_type& Cols2) {return Rows==Rows2 and Cols==Cols2;}
 
 public:
     tensor(/* args */) =default;
@@ -94,7 +94,7 @@ public:
     {
         
         static_assert(Rows == Rows2 == 1 or Cols == Cols2 == 1,"tensors are not 1D"); //must be 1d arrays
-        static_assert(has_equal_shape(other), "mismatch shapes");
+        static_assert(has_equal_shape(Rows2,Cols2), "mismatch shapes");
         
         return std::transform_reduce(std::execution::par_unseq,begin(),end(),other.begin(),static_cast<value_type>(0));
 
