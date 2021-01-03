@@ -40,6 +40,18 @@ namespace util
                    : std::numeric_limits<dtype>::quiet_NaN();
     }
 
+    template<typename T, T... ints>
+    constexpr auto array_iota(std::integer_sequence<T, ints...> int_seq)
+    {
+        return std::array<T,int_seq.size()>{{ints...}};
+    }
+
+    template<typename _Ty>
+    concept arithmetic_t  = std::is_arithmetic_v<_Ty>; 
+    constexpr auto relu(const arithmetic_t auto& e){
+        return std::max(e,0);
+    }
+
 } // namespace util
 
 #endif // UTIL_H
