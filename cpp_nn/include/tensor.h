@@ -8,7 +8,9 @@
 #include <tuple>
 #include <cassert>
 #include <numeric>
+#include <stdexcept>
 #include "rng.h"
+#include "util.h"
 /*
 ====================================================================
 A wrapper arround std::array container which is populated with 
@@ -46,10 +48,30 @@ private:
     const value_type MAX_VAL = static_cast<value_type>(MX);
     const shape_type dims = std::make_pair(Rows,Cols);
 
-    RNG<value_type,Rows*Cols> uniform_rn_gen;
+    const RNG<value_type,Rows*Cols> uniform_rn_gen{};
     container_type container{uniform_rn_gen(MIN_VAL,MAX_VAL)};
 
     constexpr static bool has_equal_shape(const size_type& Rows2,const size_type& Cols2) {return Rows==Rows2 and Cols==Cols2;}
+
+    template<std::size_t Rows2, std::size_t Cols2>
+    [[nodiscard]] constexpr auto row_wise_addition(const tensor<value_type,Rows2,Cols2>& other) const noexcept 
+    {
+        tensor<value_type,Rows,Cols> result;
+        constexpr auto rowindices = util::array_iota(std::make_index_sequence<Rows>{});
+            std::for_each(std::execution::par_unseq,std::begin(rowindices),std::end(rowindices),
+                [&](const auto i){
+                    std::transform(std::execution::unseq,
+                        begin() + i*Cols,
+                        begin() + ((i+1)*Cols),
+                        std::begin(other),
+                        std::begin(result)+ i*Cols,
+                        std::plus<>{}
+                    );
+                }
+            );
+        return result;
+    }
+
 
 public:
     tensor(/* args */) =default;
@@ -83,7 +105,13 @@ public:
     }
 
 //Apply a transformation to each element in the tensor.
-    constexpr void transform(unary_op trn) noexcept{ std::transform(std::execution::par,begin(),end(),begin(),trn);}
+    constexpr void transform(unary_op trn) noexcept{ std::transform(std::execution::par_unseq,begin(),end(),begin(),trn);}
+
+    constexpr auto _transform(unary_op trn) const noexcept{ 
+        tensor<value_type,Rows,Cols> result;
+        std::transform(std::execution::par_unseq,begin(),end(),std::begin(result),trn);
+        return result;
+    }
 
     constexpr void tanh() noexcept{transform(std::tanh);}
 
@@ -119,6 +147,25 @@ public:
         return result;
     }
 
+    template<std::size_t Rows2, std::size_t Cols2>
+    [[nodiscard]] constexpr auto operator + (const tensor<value_type,Rows2,Cols2>& other) const noexcept
+    {
+        
+        if constexpr(Rows2 == 1 and Cols2==Cols){ //other is a row vector; i.e {1,2,3,4,5,6}
+            return row_wise_addition(other);  //Row wise addition  (other<1,N>)
+        }
+        else if constexpr(Cols2 ==1 and Rows2 ==Rows){  //other is a col vector; i.e ({1,2,3,4,5,6}).T
+            return (this->transpose() + other.transpose()).transpose(); //Col wise addition    (other<N,1>)
+        }
+        else if constexpr(Rows == Rows2 and Cols == Cols2){
+            tensor<value_type,Rows,Cols> result;
+            std::transform(std::execution::par_unseq,begin(),end(),std::begin(other),std::begin(result),std::plus<>{}); //Matrix Addition  (other<N,N>)
+            return result;
+        }
+        else {
+            throw std::logic_error("mismatch dimensions for addition");
+        }
+    }
 
     [[nodiscard]] constexpr tensor<value_type,Cols,Rows> transpose() const noexcept
     {
@@ -145,6 +192,8 @@ public:
     }
 
     constexpr auto& get_shape() const noexcept{return this->dims;}
+
+
 };
 
 using dtype = float;
