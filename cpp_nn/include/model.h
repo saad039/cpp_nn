@@ -38,14 +38,14 @@ B[N]                                                = (C,1)
 
 
 
-template<std::size_t hneurons, std::size_t nfeatures, std::size_t nexamples, std::size_t oneurons, std::size_t nlayers>
+template<std::size_t hneurons, std::size_t nfeatures, std::size_t nexamples, std::size_t outneurons, std::size_t nlayers>
 class model
 {
 
     // typedef K                                           hneurons; //hidden neurons
     // typedef F                                           nfeatures;
     // typedef M                                           nexamples;
-    // typedef C                                           oneurons; //output neurons
+    // typedef C                                           outneurons; //output neurons
     // typedef N                                           nlayers;
 
 private:
@@ -55,15 +55,15 @@ private:
     //weights
     tensor_t<hneurons,nfeatures> w1;
     tensor<tensor_t<hneurons,hneurons>,nlayers-2,1> hweights; //W[2],W[3],W[4],...,[Wnlayers-1]
-    tensor_t<oneurons,hneurons> wn;
+    tensor_t<outneurons,hneurons> wn;
     
     //biases
     tensor<tensor_t<hneurons,1>,nlayers-1,1> hbiases; //B[1],B[2],B[3],...,B[nlayers-1]
-    tensor_t<oneurons,1> bn;
+    tensor_t<outneurons,1> bn;
 
     //Forward props
     tensor<tensor_t<hneurons,nexamples>,nlayers-1,1> zn_1s;
-    tensor_t<oneurons,nexamples> zn;
+    tensor_t<outneurons,nexamples> zn;
 
     //activations
     tensor<tensor_t<hneurons,nexamples>,nlayers-1,1> activations;
@@ -77,11 +77,23 @@ public:
     void forward_step() //performs a single step of forward propagation
     {
         //Z[0] = W1X + B1
-        //A[0] = relu(Z[0])
+        zn_1s[0] = w1.matmul(traindata) + hbiases[0]; //<hneurons,1>
 
-        //for(i in range(1,nlayers-2)):
-        //  Z[i+1]  = W[i]A[i] + b[i]
-        //  A[i+1] = relu(Z[i+1])
+        //A[0] = relu(Z[0])
+        activations[0] = zn_1s[0]._transform(util::relu);
+
+//      for(i in range(1,nlayers-2)):
+        for(std::size_t i = 0; i < nlayers - 2; i++)
+        {
+            //  Z[i+1]  = W[i]A[i] + b[i]
+            zn_1s[i+1] = hweights[i].matmul(activations[0]) + hbiases[i+1];
+            //  A[i+1] = relu(Z[i+1])
+            activations[i+1] = zn_1s[i+1]._transform(util::relu);
+        }
+
+        
+        
+       
 
         //for the final layer
 
