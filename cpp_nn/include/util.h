@@ -5,6 +5,12 @@
 #include <type_traits>
 #include <cstdint>
 
+#if !defined(PARALLEL_CPPNN)
+    #define PARALLEL_CPPNN
+#endif // PARALLEL_CPPNN
+
+
+
 namespace util
 {
     auto println = [](auto &&...args) {
@@ -46,10 +52,14 @@ namespace util
         return std::array<T,int_seq.size()>{{ints...}};
     }
 
-    template<typename _Ty>
-    concept arithmetic_t  = std::is_arithmetic_v<_Ty>; 
-    constexpr auto relu(const arithmetic_t auto& e){
-        return std::max(e,0);
+    template<typename T>
+    constexpr auto relu(const T& x){
+        return std::max(x,static_cast<T>(0));
+    }
+
+    template<typename T>
+    constexpr auto sigmoid(const T& x){
+        return static_cast<T>(1.0/(1+exp(-x)));
     }
 
 } // namespace util

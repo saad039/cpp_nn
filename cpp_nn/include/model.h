@@ -54,19 +54,19 @@ private:
 
     //weights
     tensor_t<hneurons,nfeatures> w1;
-    tensor<tensor_t<hneurons,hneurons>,nlayers-2,1> hweights; //W[2],W[3],W[4],...,[Wnlayers-1]
+    std::array<tensor_t<hneurons,hneurons>,nlayers-2> hweights; //W[2],W[3],W[4],...,[Wnlayers-1]
     tensor_t<outneurons,hneurons> wn;
     
     //biases
-    tensor<tensor_t<hneurons,1>,nlayers-1,1> hbiases; //B[1],B[2],B[3],...,B[nlayers-1]
+    std::array<tensor_t<hneurons,1>,nlayers-1> hbiases; //B[1],B[2],B[3],...,B[nlayers-1]
     tensor_t<outneurons,1> bn;
 
     //Forward props
-    tensor<tensor_t<hneurons,nexamples>,nlayers-1,1> zn_1s;
+    std::array<tensor_t<hneurons,nexamples>,nlayers-1> zn_1s;
     tensor_t<outneurons,nexamples> zn;
 
     //activations
-    tensor<tensor_t<hneurons,nexamples>,nlayers-1,1> activations;
+    std::array<tensor_t<hneurons,nexamples>,nlayers-1> activations;
 
 
 public:
@@ -74,7 +74,7 @@ public:
     model(tensor_t<nfeatures,nexamples>&& data) :traindata(data)
     {}
 
-    void forward_step() //performs a single step of forward propagation
+    constexpr void forward_step() noexcept//performs a single step of forward propagation
     {
         //Z[0] = W1X + B1
         zn_1s[0] = w1.matmul(traindata) + hbiases[0]; //<hneurons,1>
@@ -90,13 +90,9 @@ public:
             //  A[i+1] = relu(Z[i+1])
             activations[i+1] = zn_1s[i+1]._transform(util::relu);
         }
-
-        
-        
-       
-
         //for the final layer
-
+        zn= wn.matmul(activations[activations.size()-1]) + bn;
+        
     }
 
     void compute_loss() //computes loss after a step of forward propagation

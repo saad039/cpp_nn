@@ -9,6 +9,7 @@
 #include <cassert>
 #include <numeric>
 #include <stdexcept>
+#include <initializer_list>
 #include "rng.h"
 #include "util.h"
 /*
@@ -22,9 +23,7 @@ Random number generated ⊆  (MN,...,MX)
 ====================================================================
 */
 
-//template<typename _Ty>
-//concept floating_point  = std::is_floating_point_v<_Ty>;
-template <floating_point T, std::size_t Rows, std::size_t Cols=1, std::int32_t MN=0, std::int32_t MX=1>
+template <typename T, std::size_t Rows, std::size_t Cols=1, std::int32_t MN=0, std::int32_t MX=1>
 
 class tensor {
 
@@ -36,25 +35,22 @@ typedef value_type*                                             pointer;
 typedef const value_type*                                       const_pointer;
 typedef value_type*                                             iterator;
 typedef const value_type*                                       const_iterator;
-typedef std::pair<size_type,size_type>                          shape_type;
 typedef std::array<value_type,Rows*Cols>                        container_type;
 
 typedef value_type (*generator)();
-typedef value_type (*unary_op)(const value_type&);
 
     
 private:
-    const value_type MIN_VAL = static_cast<value_type>(MN);
-    const value_type MAX_VAL = static_cast<value_type>(MX);
-    const shape_type dims = std::make_pair(Rows,Cols);
+    constexpr static value_type MIN_VAL = static_cast<value_type>(MN);
+    constexpr static value_type MAX_VAL = static_cast<value_type>(MX);
 
-    const RNG<value_type,Rows*Cols> uniform_rn_gen{};
+    constexpr static RNG<value_type,Rows*Cols> uniform_rn_gen{};
     container_type container{uniform_rn_gen(MIN_VAL,MAX_VAL)};
 
     constexpr static bool has_equal_shape(const size_type& Rows2,const size_type& Cols2) {return Rows==Rows2 and Cols==Cols2;}
 
-    template<std::size_t Rows2, std::size_t Cols2>
-    [[nodiscard]] constexpr auto row_wise_addition(const tensor<value_type,Rows2,Cols2>& other) const noexcept 
+    template<std::size_t Rows2, std::size_t Cols2,typename bin_op>
+    [[nodiscard]] constexpr auto row_wise_arithmetic(const tensor<value_type,Rows2,Cols2>& other, bin_op op) const noexcept 
     {
         tensor<value_type,Rows,Cols> result;
         constexpr auto rowindices = util::array_iota(std::make_index_sequence<Rows>{});
@@ -65,16 +61,22 @@ private:
                         begin() + ((i+1)*Cols),
                         std::begin(other),
                         std::begin(result)+ i*Cols,
-                        std::plus<>{}
+                        // std::plus<>{}
+                        op
                     );
                 }
             );
         return result;
     }
 
-
 public:
     tensor(/* args */) =default;
+    // template<T... Args> 
+    // [[nodiscard]] constexpr tensor(Args... vals) noexcept :container({vals...}){}
+
+    [[nodiscard]] constexpr tensor(std::array<value_type,Rows*Cols>&& li) 
+        :container(li)
+    {}
     ~tensor() = default;
 
 //begin and end iterators
@@ -91,7 +93,7 @@ public:
 //sizes and capacity
     constexpr size_type capacity() const noexcept {return container.max_size();}
     constexpr size_type size() const noexcept {return container.size();}
-    void shape() const noexcept{std::cout<<'('<<dims.first<<','<<dims.second<<")\n";}
+    void shape() const noexcept{std::cout<<'('<<Rows<<','<<Cols<<")\n";}
 
 //Fill the tensor with constants. 
     constexpr void constant_fill(const value_type& val)noexcept {std::fill(begin(),end(),val);}
@@ -105,8 +107,10 @@ public:
     }
 
 //Apply a transformation to each element in the tensor.
+    template<typename unary_op>
     constexpr void transform(unary_op trn) noexcept{ std::transform(std::execution::par_unseq,begin(),end(),begin(),trn);}
 
+    template<typename unary_op>
     constexpr auto _transform(unary_op trn) const noexcept{ 
         tensor<value_type,Rows,Cols> result;
         std::transform(std::execution::par_unseq,begin(),end(),std::begin(result),trn);
@@ -128,7 +132,30 @@ public:
 
     }
 
-    
+    [[nodiscard]] constexpr value_type sum() const noexcept
+    {
+        return std::accumulate(begin(),end(),static_cast<value_type>(0));
+    }
+
+    template<std::size_t Rows2, std::size_t Cols2>
+    [[nodiscard]] constexpr auto element_wise_mul(const tensor<value_type,Rows2,Cols2>& other) const noexcept
+    {
+        
+        static_assert(Rows == Rows2 == 1 or Cols == Cols2 == 1,"tensors are not 1D"); //must be 1d arrays
+        static_assert(has_equal_shape(Rows2,Cols2), "mismatch shapes");
+
+        tensor<value_type,Rows,Cols> result;
+        std::transform(std::execution::par_unseq,begin(),end(),other.begin(),result.begin(),std::multiplies<>{});
+
+        return result;
+    }
+
+    [[nodiscard]] constexpr auto element_wise_add_s(const value_type val) noexcept
+    {
+        std::transform(begin(),end(),begin(),[&](const auto x ){return val + x;});
+        return *this;
+    }
+
     template<std::size_t Rows2, std::size_t Cols2>
     [[nodiscard]] constexpr auto matmul(const tensor<value_type,Rows2,Cols2>& other) const noexcept
     {
@@ -152,7 +179,7 @@ public:
     {
         
         if constexpr(Rows2 == 1 and Cols2==Cols){ //other is a row vector; i.e {1,2,3,4,5,6}
-            return row_wise_addition(other);  //Row wise addition  (other<1,N>)
+            return row_wise_arithmetic(other,std::plus<>());  //Row wise addition  (other<1,N>)
         }
         else if constexpr(Cols2 ==1 and Rows2 ==Rows){  //other is a col vector; i.e ({1,2,3,4,5,6}).T
             return (this->transpose() + other.transpose()).transpose(); //Col wise addition    (other<N,1>)
@@ -160,6 +187,27 @@ public:
         else if constexpr(Rows == Rows2 and Cols == Cols2){
             tensor<value_type,Rows,Cols> result;
             std::transform(std::execution::par_unseq,begin(),end(),std::begin(other),std::begin(result),std::plus<>{}); //Matrix Addition  (other<N,N>)
+            return result;
+        }
+        else {
+            throw std::logic_error("mismatch dimensions for addition");
+        }
+    }
+
+
+    template<std::size_t Rows2, std::size_t Cols2>
+    [[nodiscard]] constexpr auto operator - (const tensor<value_type,Rows2,Cols2>& other) const noexcept
+    {
+        
+        if constexpr(Rows2 == 1 and Cols2==Cols){ //other is a row vector; i.e {1,2,3,4,5,6}
+            return row_wise_arithmetic(other,std::minus<>());  //Row wise addition  (other<1,N>)
+        }
+        else if constexpr(Cols2 ==1 and Rows2 ==Rows){  //other is a col vector; i.e ({1,2,3,4,5,6}).T
+            return (this->transpose() - other.transpose()).transpose(); //Col wise addition    (other<N,1>)
+        }
+        else if constexpr(Rows == Rows2 and Cols == Cols2){
+            tensor<value_type,Rows,Cols> result;
+            std::transform(std::execution::par_unseq,begin(),end(),std::begin(other),std::begin(result),std::minus<>{}); //Matrix Addition  (other<N,N>)
             return result;
         }
         else {
@@ -191,7 +239,7 @@ public:
         }
     }
 
-    constexpr auto& get_shape() const noexcept{return this->dims;}
+    constexpr auto& get_shape() const noexcept{std::make_pair(Rows,Cols);}
 
 
 };
