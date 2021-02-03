@@ -3,7 +3,5 @@
 .vscode/
 bin/
 bin-init/
-build/
-Makefile
 *.sln
 premake5.lua

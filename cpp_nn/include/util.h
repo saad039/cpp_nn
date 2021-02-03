@@ -5,11 +5,6 @@
 #include <type_traits>
 #include <cstdint>
 
-#if !defined(PARALLEL_CPPNN)
-    #define PARALLEL_CPPNN
-#endif // PARALLEL_CPPNN
-
-
 
 namespace util
 {
