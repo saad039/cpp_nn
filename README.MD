@@ -12,4 +12,4 @@ To build the project, simply
 > ```make config=release```
 
 
-Compiler Explorer Preview [compiler_explorer](https://godbolt.org/z/feGhbM)
+Compiler Explorer Preview [compiler_explorer](https://godbolt.org/z/rqTsz5)
