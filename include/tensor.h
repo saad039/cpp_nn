@@ -14,19 +14,19 @@
 #include <tuple>
 
 #ifdef PARALLEL_UNSEQ_POL
-#define PARALLEL_UNSEQ std::execution::par_unseq,
+#define PARALLEL_UNSEQ std::execution::par_unseq
 #else
 #define PARALLEL_UNSEQ
 #endif
 
 #ifdef PARALLEL_SEQ_POL
-#define PARALLEL_SEQ std::execution::par,
+#define PARALLEL_SEQ std::execution::par
 #else
 #define PARALLEL_SEQ
 #endif
 
 #ifdef UNSEQ_POL
-#define UNSEQ std::execution::unseq,
+#define UNSEQ std::execution::unseq
 #else
 #define UNSEQ
 #endif
@@ -75,7 +75,7 @@ class tensor {
                                                      bin_op op) const noexcept {
         tensor<value_type, Rows, Cols> result;
         constexpr auto rowindices = util::array_iota(std::make_index_sequence<Rows>{});
-        std::for_each(PARALLEL_UNSEQ std::begin(rowindices), std::end(rowindices),
+        std::for_each(PARALLEL_UNSEQ, std::begin(rowindices), std::end(rowindices),
                       [&](const auto i) {
                           std::transform(UNSEQ begin() + i * Cols, begin() + ((i + 1) * Cols),
                                          std::begin(other), std::begin(result) + i * Cols, op);
@@ -112,7 +112,7 @@ class tensor {
 
     // Fill the tensor by invoking a function for each element
     constexpr void generator_fill(generator gen) noexcept {
-        std::generate(PARALLEL_SEQ begin(), end(), gen);
+        std::generate(PARALLEL_SEQ, begin(), end(), gen);
     }
 
     constexpr void range_fill(const_reference start) noexcept { std::iota(begin(), end(), start); }
@@ -120,13 +120,13 @@ class tensor {
     // Apply a transformation to each element in the tensor.
     template <typename unary_op>
     constexpr void transform(unary_op trn) noexcept {
-        std::transform(PARALLEL_UNSEQ begin(), end(), begin(), trn);
+        std::transform(PARALLEL_UNSEQ, begin(), end(), begin(), trn);
     }
 
     template <typename unary_op>
     constexpr auto _transform(unary_op trn) const noexcept {
         tensor<value_type, Rows, Cols> result;
-        std::transform(PARALLEL_UNSEQ begin(), end(), std::begin(result), trn);
+        std::transform(PARALLEL_UNSEQ, begin(), end(), std::begin(result), trn);
         return result;
     }
 
@@ -144,7 +144,7 @@ class tensor {
                       "tensors are not 1D"); // must be 1d arrays
         static_assert(has_equal_shape(Rows2, Cols2), "mismatch shapes");
 
-        return std::transform_reduce(PARALLEL_UNSEQ begin(), end(), other.begin(),
+        return std::transform_reduce(PARALLEL_UNSEQ, begin(), end(), other.begin(),
                                      static_cast<value_type>(0));
     }
 
@@ -161,7 +161,7 @@ class tensor {
         static_assert(has_equal_shape(Rows2, Cols2), "mismatch shapes");
 
         tensor<value_type, Rows, Cols> result;
-        std::transform(PARALLEL_UNSEQ begin(), end(), other.begin(), result.begin(),
+        std::transform(PARALLEL_UNSEQ, begin(), end(), other.begin(), result.begin(),
                        std::multiplies<>{});
 
         return result;
@@ -184,7 +184,7 @@ class tensor {
             const auto end_1 = begin() + (i + 1) * Cols;
             for (size_type j = 0; j < Cols2; j++) {
                 const auto start_2 = tr_tensor.begin() + (j * Rows2);
-                result[j + Cols2 * i] = std::transform_reduce(PARALLEL_UNSEQ start_1, end_1,
+                result[j + Cols2 * i] = std::transform_reduce(PARALLEL_UNSEQ, start_1, end_1,
                                                               start_2, static_cast<value_type>(0));
             }
         }
@@ -203,7 +203,7 @@ class tensor {
                 .transpose(); // Col wise addition    (other<N,1>)
         } else if constexpr (Rows == Rows2 and Cols == Cols2) {
             tensor<value_type, Rows, Cols> result;
-            std::transform(PARALLEL_UNSEQ begin(), end(), std::begin(other), std::begin(result),
+            std::transform(PARALLEL_UNSEQ, begin(), end(), std::begin(other), std::begin(result),
                            std::plus<>{}); // Matrix Addition  (other<N,N>)
             return result;
         } else {
@@ -223,7 +223,7 @@ class tensor {
                 .transpose(); // Col wise addition    (other<N,1>)
         } else if constexpr (Rows == Rows2 and Cols == Cols2) {
             tensor<value_type, Rows, Cols> result;
-            std::transform(PARALLEL_UNSEQ begin(), end(), std::begin(other), std::begin(result),
+            std::transform(PARALLEL_UNSEQ, begin(), end(), std::begin(other), std::begin(result),
                            std::minus<>{}); // Matrix Addition  (other<N,N>)
             return result;
         } else {
